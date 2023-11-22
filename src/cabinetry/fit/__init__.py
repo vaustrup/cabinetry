@@ -41,6 +41,33 @@ def print_results(fit_results: FitResults) -> None:
         )
 
 
+def _param_type(model: pyhf.pdf.Model, param_name: str) -> str:
+    """Retrieve type of parameter.
+    
+    If the parameter is part of a larger parameter set, the trailing index
+    needs to be removed, following pyhf naming conventions.
+
+    Args:
+        model (pyhf.pdf.Model): the model used in the fit
+        param_name (str): name of the parameter to retrieve the type of
+
+    Raises:
+        ValueError: when param_name is not found in the model
+
+    Returns:
+        str: type of parameter
+    """
+    modifier_dict = dict(model.config.modifiers)
+    if param_name in modifier_dict:
+        return modifier_dict[param_name]
+    # if parameter is part of a paramset
+    # remove the final brackets and try again
+    i = param_name.rfind("[")
+    if i != -1 and param_name[:i] in modifier_dict:
+        return modifier_dict[param_name[:i]]
+    raise ValueError(f"Cannot find parameter {param_name} in model.")
+
+
 def _fit_model_pyhf(
     model: pyhf.pdf.Model,
     data: List[float],
@@ -113,6 +140,7 @@ def _fit_model_pyhf(
         result_obj.minuit.fixed, 0.0, pyhf.tensorlib.to_numpy(result[:, 1])
     )
     labels = model.config.par_names
+    types = [_param_type(model, label) for label in model.config.par_names]
     corr_mat = pyhf.tensorlib.to_numpy(corr_mat)
     best_twice_nll = float(best_twice_nll)  # convert 0-dim np.ndarray to float
 
@@ -124,6 +152,7 @@ def _fit_model_pyhf(
         bestfit,
         uncertainty,
         labels,
+        types,
         corr_mat,
         best_twice_nll,
         minos_uncertainty=minos_results,
