@@ -496,6 +496,8 @@ def pulls(
             figures in, defaults to "figures"
         exclude (Optional[Union[str, List[str], Tuple[str, ...]]], optional): parameter
             or parameters to exclude from plot, defaults to None (nothing excluded)
+        exclude_type (Optional[Union[str, List[str], Tuple[str, ...]]], optional)): type
+            of parameters to exclude from plot, defaults to ['normfactor', 'staterror']
         close_figure (bool, optional): whether to close figure, defaults to True
         save_figure (bool, optional): whether to save figure, defaults to True
 
@@ -522,8 +524,15 @@ def pulls(
         ]
     )
 
-    # exclude staterror parameters from pull plot (they are centered at 1)
-    exclude_set.update([label for label in labels_np if label[0:10] == "staterror_"])
+    # exclude parameters with types in exclude_type from pull plot
+    if exclude_type is None:
+        exclude_type_list = []
+    elif isinstance(exclude_type, str):
+        exclude_type_list = [exclude_type]
+    else:
+        exclude_type_list = list(exclude_type)
+
+    exclude_set.update([label for label, t in zip(labels_np, types_np) if t in exclude_type_list])
 
     # filter out user-specified parameters
     mask = [True if label not in exclude_set else False for label in labels_np]
